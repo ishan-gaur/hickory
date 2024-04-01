@@ -72,7 +72,7 @@ def extract_listings(html: str):
         extracted = {
             'name': listing.get('marketplace_listing_title', 'N/A'),
             'price': listing['listing_price'].get('formatted_amount', 'N/A'),
-            'location': listing['location']['reverse_geocode'].get('display_name', 'N/A'),
+            'location': listing['location']['reverse_geocode'].get('city', 'N/A'),
             'image_url': listing['primary_listing_photo']['image'].get('uri', 'N/A'),
             'delivery_options': listing.get('delivery_types', []),
             'seller': listing['marketplace_listing_seller'].get('name', 'N/A'),
