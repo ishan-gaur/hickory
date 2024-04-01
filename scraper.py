@@ -75,7 +75,8 @@ def extract_listings(html: str):
             'location': listing['location']['reverse_geocode'].get('display_name', 'N/A'),
             'image_url': listing['primary_listing_photo']['image'].get('uri', 'N/A'),
             'delivery_options': listing.get('delivery_types', []),
-            'seller': listing['marketplace_listing_seller'].get('name', 'N/A')
+            'seller': listing['marketplace_listing_seller'].get('name', 'N/A'),
+            'item_id': listing['id']
         }
         listings.append(extracted)
     return listings
