@@ -79,7 +79,7 @@ def extract_listings(html: str):
             'item_id': listing['id']
         }
         listings.append(extracted)
-    return listings
+    return {"listings": listings}
 
 if __name__ == "__main__":
     if Path('marketplace_search_results.html').exists():
