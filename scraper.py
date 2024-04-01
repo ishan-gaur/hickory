@@ -81,12 +81,12 @@ def extract_listings(html: str):
     return listings
 
 if __name__ == "__main__":
-    # if Path('marketplace_search_results.html').exists():
-    #     with open('marketplace_search_results.html', 'r', encoding='utf-8') as file:
-    #         html = file.read()
-    # else:
-    #     html = search_fb_marketplace(city="houston", query="couch")
-    html = search_fb_marketplace(city="houston", query="couch")
+    if Path('marketplace_search_results.html').exists():
+        with open('marketplace_search_results.html', 'r', encoding='utf-8') as file:
+            html = file.read()
+    else:
+        html = search_fb_marketplace(city="houston", query="couch")
+    # html = search_fb_marketplace(city="houston", query="couch")
     listings = extract_listings(html)
 
     listings = extract_listings(html)
