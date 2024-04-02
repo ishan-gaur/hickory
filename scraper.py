@@ -50,6 +50,9 @@ class FacebookScraper:
             if input("Try again?").lower() in ["y", "yes"]:
                 self.handle_user_login()
 
+    def search_marketplace(self, city: str, query: str, max_price: int = None):
+        # TODO: check somehow if this is a valid city or send that as a separate error at request time
+        city = city.lower().replace(' ', '')
         if max_price is None:
             marketplace_url = f'{self.MARKETPLACE_URL_PREFIX}/{city}/search/?query={query}'
         else:
