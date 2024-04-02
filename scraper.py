@@ -12,6 +12,16 @@ load_dotenv()
 
 
 class FacebookScraper:
+    INITIAL_URL = "https://www.facebook.com/login/device-based/regular/login/"
+    SEARCH_RESULT_JSON_ENTITY = 'marketplace_search'
+    MARKETPLACE_LISTINGS_QUERY = "$..marketplace_search.*"
+    EMAIL_SELECTOR = 'input[name="email"]'
+    PASSWORD_SELECTOR = 'input[name="pass"]'
+    LOGIN_BUTTON_SELECTOR = 'button[name="login"]'
+    MARKETPLACE_URL_PREFIX = "https://www.facebook.com/marketplace"
+    SLEEP_DURATION = 2
+    USERNAME_ENV_VAR = "USERNAME"
+    PASSWORD_ENV_VAR = "PASSWORD"
     
     def __init__(self, playwright_context):
         self.playwright_context = playwright_context
@@ -20,16 +30,15 @@ class FacebookScraper:
     
 
     def login(self):
-        initial_url = "https://www.facebook.com/login/device-based/regular/login/"
-        self.page.goto(initial_url)
-        time.sleep(2)
+        self.page.goto(self.INITIAL_URL)
+        time.sleep(self.SLEEP_DURATION)
 
         try: 
-            email_input = self.page.wait_for_selector('input[name="email"]').fill(os.getenv("USERNAME"))
-            password_input = self.page.wait_for_selector('input[name="pass"]').fill(os.getenv("PASSWORD"))
-            time.sleep(2)
-            login_button = self.page.wait_for_selector('button[name="login"]').click()
-            time.sleep(2)
+            email_input = self.page.wait_for_selector(self.EMAIL_SELECTOR).fill(os.getenv(self.USERNAME_ENV_VAR))
+            password_input = self.page.wait_for_selector(self.PASSWORD_SELECTOR).fill(os.getenv(self.PASSWORD_ENV_VAR))
+            time.sleep(self.SLEEP_DURATION)
+            login_button = self.page.wait_for_selector(self.LOGIN_BUTTON_SELECTOR).click()
+            time.sleep(self.SLEEP_DURATION)
 
             # TODO: Handle MFA Forwarding for the user
             # time.sleep(20)
@@ -41,21 +50,23 @@ class FacebookScraper:
             if input("Try again?").lower() in ["y", "yes"]:
                 self.handle_user_login()
 
-        time.sleep(2)
-        page.goto(marketplace_url)
-        html = page.content()
+        if max_price is None:
+            marketplace_url = f'{self.MARKETPLACE_URL_PREFIX}/{city}/search/?query={query}'
+        else:
+            marketplace_url = f'{self.MARKETPLACE_URL_PREFIX}/{city}/search/?query={query}&maxPrice={max_price}'
+        self.page.goto(marketplace_url)
+        html = self.page.content()
 
         soup = BeautifulSoup(html, 'html.parser')
-        item_result_tag = soup.find('script', string=lambda t: not t is None and 'marketplace_search' in t)
+        item_result_tag = soup.find('script', string=lambda t: not t is None and self.SEARCH_RESULT_JSON_ENTITY in t)
         item_result_json = json.loads(item_result_tag.string)  # or any required manipulation to isolate the JSON
 
-        MARKETPLACE_LISTINGS_QUERY = "$..marketplace_search.*"
-        jsonpath_expr = parse(MARKETPLACE_LISTINGS_QUERY)
+        jsonpath_expr = parse(self.MARKETPLACE_LISTINGS_QUERY)
         matches = [match.value for match in jsonpath_expr.find(item_result_json)]
         if len(matches) == 0:
-            raise ValueError(f"The jsonpath_ng query for the listings ({MARKETPLACE_LISTINGS_QUERY}) was not found.")
+            raise ValueError(f"The jsonpath_ng query for the listings ({self.MARKETPLACE_LISTINGS_QUERY}) was not found.")
         elif len(matches) > 1:
-            raise ValueError(f"The jsonpath_ng query for listings ({MARKETPLACE_LISTINGS_QUERY}) returned multiple results.")
+            raise ValueError(f"The jsonpath_ng query for listings ({self.MARKETPLACE_LISTINGS_QUERY}) returned multiple results.")
 
         listings_json = matches[0]
         listings = []
