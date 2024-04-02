@@ -4,9 +4,13 @@ import json
 import pprint
 from pathlib import Path
 from playwright.sync_api import sync_playwright # testing framework for interaction with a web-browser
+from playwright.async_api import async_playwright
+
 from bs4 import BeautifulSoup # for html parsing
 from jsonpath_ng import parse
 from dotenv import load_dotenv
+import asyncio
+
 load_dotenv()
 
 
@@ -15,27 +19,73 @@ class FacebookScraper:
     # for debugging
     # - Also to maintain an interactive user session, we don't want to request 
 
-    def __init__(self, playwright_context):
-        self.playwright_context = playwright_context
+    def __init__(self):
+        self.playwright_context = None
+        self.browser = None
+        self.page = None
+    
+    async def start_session(self):
+        self.playwright = await async_playwright().start()
+        self.browser = await self.playwright.chromium.launch(headless=False)
+        self.page = await self.browser.new_page()
+
+    async def end_session(self):
+        await self.browser.close()
+        await self.playwright.__aexit__(None, None, None) 
+
+    # def __enter__(self):
+        self.playwright_context = sync_playwright().__enter__()
         self.browser = self.playwright_context.chromium.launch(headless=False)
         self.page = self.browser.new_page()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.browser.close()
+        self.playwright_context.__exit__(None, None, None)
     
 
-    def handle_user_login(self):
+    async def handle_user_login(self):
         try: 
+            print("inside user login method...")
             initial_url = "https://www.facebook.com/login/device-based/regular/login/"
-            email_input = self.page.wait_for_selector('input[name="email"]').fill(os.getenv("USERNAME"))
-            password_input = self.page.wait_for_selector('input[name="pass"]').fill(os.getenv("PASSWORD"))
-            time.sleep(2)
-            login_button = self.page.wait_for_selector('button[name="login"]').click()
+            await self.page.goto(initial_url)
+            email_input = await self.page.wait_for_selector('input[name="email"]')
+            await email_input.fill(os.getenv("USERNAME"))
+            print("Successfully went to page ")
+            await asyncio.sleep(2)
+            password_input = await self.page.wait_for_selector('input[name="pass"]')
+            await password_input.fill(os.getenv("PASSWORD"))
+            await asyncio.sleep(2)
+            login_button = await self.page.wait_for_selector('button[name="login"]')
+            await login_button.click()
 
             # TODO: Handle MFA Forwarding for the user
-            time.sleep(20)
+            await asyncio.sleep(20)
 
         except TimeoutError:
             print("One of the email, password, or login-button elements did not appear within 30 seconds")
             if input("Try again?").lower() in ["y", "yes"]:
-                self.handle_user_login()
+                await self.handle_user_login()
+    
+    # kdef handle_user_login(self):
+    # k    try: 
+    # k        print("inside user login method...")
+    # k        initial_url = "https://www.facebook.com/login/device-based/regular/login/"
+    # k        self.page.goto(initial_url)
+    # k        email_input = self.page.wait_for_selector('input[name="email"]').fill(os.getenv("USERNAME"))
+    # k        print("Successfully went to page ")
+    # k        time.sleep(2)
+    # k        password_input = self.page.wait_for_selector('input[name="pass"]').fill(os.getenv("PASSWORD"))
+    # k        time.sleep(2)
+    # k        login_button = self.page.wait_for_selector('button[name="login"]').click()
+
+    # k        # TODO: Handle MFA Forwarding for the user
+    # k        time.sleep(20)
+
+    # k    except TimeoutError:
+    # k        print("One of the email, password, or login-button elements did not appear within 30 seconds")
+    # k        if input("Try again?").lower() in ["y", "yes"]:
+    # k            self.handle_user_login()
 
     
     def search_fb_marketplace(self, city: str, query: str, max_price: int = None):
@@ -145,16 +195,17 @@ class FacebookScraper:
         return {"listing_data": listing_data}
 
 
-if __name__ == "__main__":
-    
-    if Path('marketplace_search_results.html').exists():
-        with open('marketplace_search_results.html', 'r', encoding='utf-8') as file:
-            html = file.read()
-    else:
-        html = search_fb_marketplace(city="san francisco", query="tv stand")
-    # html = search_fb_marketplace(city="houston", query="couch")
-    listings = extract_listings(html)
-
-    listings = extract_listings(html)
-    pp = pprint.PrettyPrinter(indent=4)
-    pp.pprint(listings)
+# kif __name__ == "__main__":
+# k
+# k    
+# k    # kif Path('marketplace_search_results.html').exists():
+# k    # k    with open('marketplace_search_results.html', 'r', encoding='utf-8') as file:
+# k    # k        html = file.read()
+# k    # kelse:
+# k    # k    html = search_fb_marketplace(city="san francisco", query="tv stand")
+# k    # k# html = search_fb_marketplace(city="houston", query="couch")
+# k    # klistings = extract_listings(html)
+# k
+# k    # klistings = extract_listings(html)
+# k    # kpp = pprint.PrettyPrinter(indent=4)
+# k    # kpp.pprint(listings)
