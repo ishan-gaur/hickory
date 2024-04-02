@@ -48,7 +48,6 @@ def search_fb_marketplace(city: str, query: str, max_price: int = None):
         page.goto(marketplace_url)
 
         html = page.content()
-        input()
     return html
     
 def extract_listings(html: str):
@@ -82,12 +81,12 @@ def extract_listings(html: str):
     return {"listings": listings}
 
 if __name__ == "__main__":
-    if Path('marketplace_search_results.html').exists():
-        with open('marketplace_search_results.html', 'r', encoding='utf-8') as file:
-            html = file.read()
-    else:
-        html = search_fb_marketplace(city="houston", query="couch")
-    # html = search_fb_marketplace(city="houston", query="couch")
+    # if Path('marketplace_search_results.html').exists():
+    #     with open('marketplace_search_results.html', 'r', encoding='utf-8') as file:
+    #         html = file.read()
+    # else:
+    #     html = search_fb_marketplace(city="houston", query="couch")
+    html = search_fb_marketplace(city="San Francisco", query="couch", max_price=None)
     listings = extract_listings(html)
 
     listings = extract_listings(html)
