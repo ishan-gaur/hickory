@@ -12,16 +12,19 @@ load_dotenv()
 
 
 class FacebookScraper:
-    INITIAL_URL = "https://www.facebook.com/login/device-based/regular/login/"
-    SEARCH_RESULT_JSON_ENTITY = 'marketplace_search'
-    MARKETPLACE_LISTINGS_QUERY = "$..marketplace_search.*"
-    EMAIL_SELECTOR = 'input[name="email"]'
-    PASSWORD_SELECTOR = 'input[name="pass"]'
-    LOGIN_BUTTON_SELECTOR = 'button[name="login"]'
-    MARKETPLACE_URL_PREFIX = "https://www.facebook.com/marketplace"
+
     SLEEP_DURATION = 2
     USERNAME_ENV_VAR = "USERNAME"
     PASSWORD_ENV_VAR = "PASSWORD"
+
+    INITIAL_URL = "https://www.facebook.com/login/device-based/regular/login/"
+    EMAIL_SELECTOR = 'input[name="email"]'
+    PASSWORD_SELECTOR = 'input[name="pass"]'
+    LOGIN_BUTTON_SELECTOR = 'button[name="login"]'
+
+    MARKETPLACE_URL_PREFIX = "https://www.facebook.com/marketplace"
+    SEARCH_RESULT_JSON_ENTITY = 'marketplace_search'
+    MARKETPLACE_LISTINGS_QUERY = "$..marketplace_search.*"
     
     def __init__(self, playwright_context):
         self.playwright_context = playwright_context
