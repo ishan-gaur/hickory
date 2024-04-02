@@ -50,21 +50,20 @@ class FacebookScraper:
             if input("Try again?").lower() in ["y", "yes"]:
                 await self.login()
     
-    def search_fb_marketplace(self, city: str, query: str, max_price: int = None):
-        city = city.lower().replace(' ', '')
+    async def search_fb_marketplace(self, city: str, query: str, max_price: int = None):
         # TODO: check somehow if this is a valid city or send that as a separate error at request time
-            
-        # Define the URL to scrape.
+        city = city.lower().replace(' ', '')
         if max_price is None:
             marketplace_url = f'https://www.facebook.com/marketplace/{city}/search/?query={query}'
         else:
             marketplace_url = f'https://www.facebook.com/marketplace/{city}/search/?query={query}&maxPrice={max_price}'
 
-        self.page.goto(marketplace_url)
-        html = self.page.content()
+        await self.page.goto(marketplace_url)
+        html = await self.page.content()
         soup = BeautifulSoup(html, 'html.parser')
         pretty_html = soup.prettify()
             
+        # extract a simplified json for the listings instead of the one in the raw html
         item_result_tag = soup.find('script', string=lambda t: not t is None and 'marketplace_search' in t)
         item_result_json = json.loads(item_result_tag.string)  # or any required manipulation to isolate the JSON
         MARKETPLACE_LISTINGS_QUERY = "$..marketplace_search.*"
@@ -90,48 +89,53 @@ class FacebookScraper:
             listings.append(extracted)
         return {"listings": listings}
     
-    def get_listing_page(self, listing_id: int):
+    async def get_listing_page(self, listing_id: int):
         listing_url = f'https://www.facebook.com/marketplace/item/{listing_id}'
 
         # TODO: Add a wrapper to handle all this json path crap, it's the same with most of this scraping logic
-        self.page.goto(listing_url)
-        time.sleep(2)
+        # self.page.goto(listing_url)
+        # time.sleep(2)
 
-        html = self.page.content()
+        # html = self.page.content()
 
-        soup = BeautifulSoup(html, 'html.parser')
-        item_result_tag = soup.find('script', string=lambda t: not t is None and 'marketplace_pdp' in t)
-        item_result_json = json.loads(item_result_tag.string)  # or any required manipulation to isolate the JSON
-        LISTING_DATA_QUERY = "$..marketplace_pdp.*"
-        jsonpath_expr = parse(LISTING_DATA_QUERY)
-        matches = [match.value for match in jsonpath_expr.find(item_result_json)]
-        if len(matches) == 0:
-            raise ValueError(f"The jsonpath_ng query for the listing data ({LISTING_DATA_QUERY}) was not found.")
-        elif len(matches) > 1:
-            raise ValueError(f"The jsonpath_ng query for listing data ({LISTING_DATA_QUERY}) returned multiple results.")
-        listing_data_json = matches[0]
-        listing_data = {
-            'name': listing_data_json.get('marketplace_listing_title', 'N/A'),
-            'price': listing_data_json['listing_price'].get('formatted_amount', 'N/A'),
-            'location': listing_data_json['location']['reverse_geocode'].get('display_name', 'N/A'),
-            'image_url': listing_data_json['primary_listing_photo']['image'].get('uri', 'N/A'),
-            'delivery_options': listing_data_json.get('delivery_types', []),
-            'seller': listing_data_json['marketplace_listing_seller'].get('name', 'N/A'),
-            'item_id': listing_data_json['id']
-        }
-        return {"listing_data": listing_data}
+        # soup = BeautifulSoup(html, 'html.parser')
+        # item_result_tag = soup.find('script', string=lambda t: not t is None and 'marketplace_pdp' in t)
+        # item_result_json = json.loads(item_result_tag.string)  # or any required manipulation to isolate the JSON
+        # LISTING_DATA_QUERY = "$..marketplace_pdp.*"
+        # jsonpath_expr = parse(LISTING_DATA_QUERY)
+        # matches = [match.value for match in jsonpath_expr.find(item_result_json)]
+        # if len(matches) == 0:
+        #     raise ValueError(f"The jsonpath_ng query for the listing data ({LISTING_DATA_QUERY}) was not found.")
+        # elif len(matches) > 1:
+        #     raise ValueError(f"The jsonpath_ng query for listing data ({LISTING_DATA_QUERY}) returned multiple results.")
+        # listing_data_json = matches[0]
+        # listing_data = {
+        #     'name': listing_data_json.get('marketplace_listing_title', 'N/A'),
+        #     'price': listing_data_json['listing_price'].get('formatted_amount', 'N/A'),
+        #     'location': listing_data_json['location']['reverse_geocode'].get('display_name', 'N/A'),
+        #     'image_url': listing_data_json['primary_listing_photo']['image'].get('uri', 'N/A'),
+        #     'delivery_options': listing_data_json.get('delivery_types', []),
+        #     'seller': listing_data_json['marketplace_listing_seller'].get('name', 'N/A'),
+        #     'item_id': listing_data_json['id']
+        # }
+        # return {"listing_data": listing_data}
+        raise NotImplementedError("The get_listing_page method is not yet implemented.")
 
 
-if __name__ == "__main__":
-    pp = pprint.PrettyPrinter(indent=4)
+async def main():
     scraper = FacebookScraper()
-    scraper.login()
-    output = None
+    await scraper.start_session()
+    await scraper.login()
+    pp = pprint.PrettyPrinter(indent=4)
     interpreter = code.InteractiveInterpreter(locals={
         'scraper': scraper,
         'pp': pp
     })
     cmd = input("> ")
     while cmd != "exit()":
-        interpreter.runsource(f"pp.pprint(scraper.{cmd})")
+        interpreter.runsource(f"pp.pprint(await scraper.{cmd})")
         cmd = input("> ")
+    await scraper.end_session()
+
+if __name__ == "__main__":
+    asyncio.run(main())
