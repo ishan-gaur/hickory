@@ -1,4 +1,5 @@
 import os
+import code
 import time
 import json
 import pprint
@@ -132,7 +133,6 @@ if __name__ == "__main__":
     # pp = pprint.PrettyPrinter(indent=4)
     # pp.pprint(listings)
 
-    import code
     pp = pprint.PrettyPrinter(indent=4)
     with sync_playwright() as p:
         scraper = FacebookScraper(p)
