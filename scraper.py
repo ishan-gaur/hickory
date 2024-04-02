@@ -22,15 +22,21 @@ class FacebookScraper:
     
 
     def handle_user_login(self):
+        initial_url = "https://www.facebook.com/login/device-based/regular/login/"
+        self.page.goto(initial_url)
+        time.sleep(2)
+
         try: 
-            initial_url = "https://www.facebook.com/login/device-based/regular/login/"
             email_input = self.page.wait_for_selector('input[name="email"]').fill(os.getenv("USERNAME"))
             password_input = self.page.wait_for_selector('input[name="pass"]').fill(os.getenv("PASSWORD"))
             time.sleep(2)
             login_button = self.page.wait_for_selector('button[name="login"]').click()
+            time.sleep(2)
 
             # TODO: Handle MFA Forwarding for the user
-            time.sleep(20)
+            # time.sleep(20)
+            # if page.get_by_text("The email or mobile number you entered isn't connected to an account.").is_visible():
+            #     raise ValueError("Email or password is incorrect!")
 
         except TimeoutError:
             print("One of the email, password, or login-button elements did not appear within 30 seconds")
@@ -51,37 +57,6 @@ class FacebookScraper:
         self.page.goto(marketplace_url)
         html = self.page.content()
         return html
-
-        # with sync_playwright() as p:
-        #     # Initialize the session, go to the login page, and wait for it to load
-        #     browser = p.chromium.launch(headless=False)
-        #     page = browser.new_page()
-        #     page.goto(initial_url)
-        #     time.sleep(2)
-
-        #     # try logging in
-        #     try:
-        #         email_input = page.wait_for_selector('input[name="email"]').fill(os.getenv("USERNAME"))
-        #         time.sleep(2)
-        #         password_input = page.wait_for_selector('input[name="pass"]').fill(os.getenv("PASSWORD"))
-        #         time.sleep(2)
-        #         login_button = page.wait_for_selector('button[name="login"]').click()
-
-        #         # TODO: Handle call to grab user MFA credential
-        #         time.sleep(20)
-        #         if page.get_by_text("The email or mobile number you entered isn't connected to an account.").is_visible():
-        #             raise ValueError("Email or password is incorrect!")
-        #     except TimeoutError:
-        #         print("One of the email, password, or login-button elements did not appear within 30 seconds")
-        #         if input("Try again?").lower() in ["y", "yes"]:
-        #             search_fb_marketplace(city, query, max_price)
-
-        #     time.sleep(2)
-        #     page.goto(marketplace_url)
-
-        #     html = page.content()
-        #     input()
-        # return html
     
     def extract_listings(self, html: str):
         soup = BeautifulSoup(html, 'html.parser')
@@ -147,14 +122,29 @@ class FacebookScraper:
 
 if __name__ == "__main__":
     
-    if Path('marketplace_search_results.html').exists():
-        with open('marketplace_search_results.html', 'r', encoding='utf-8') as file:
-            html = file.read()
-    else:
-        html = search_fb_marketplace(city="san francisco", query="tv stand")
-    # html = search_fb_marketplace(city="houston", query="couch")
-    listings = extract_listings(html)
+    # if Path('marketplace_search_results.html').exists():
+    #     with open('marketplace_search_results.html', 'r', encoding='utf-8') as file:
+    #         html = file.read()
+    # else:
+    #     html = search_fb_marketplace(city="san francisco", query="tv stand")
+    # # html = search_fb_marketplace(city="houston", query="couch")
+    # listings = extract_listings(html)
 
-    listings = extract_listings(html)
-    pp = pprint.PrettyPrinter(indent=4)
-    pp.pprint(listings)
+    # listings = extract_listings(html)
+    # pp = pprint.PrettyPrinter(indent=4)
+    # pp.pprint(listings)
+
+    # import inspect
+    # with sync_playwright() as p:
+    #     scraper = FacebookScraper(p)
+    #     cmd = input(">>")
+    #     while cmd != "exit()":
+    #         cmd = input(">>")
+    #         method_name = cmd[:cmd.find('(')]
+    #         prov_args = 
+    #         try:
+    #             method = getattr(scraper, method_name)
+    #             method()
+            
+    with sync_playwright() as p:
+        FacebookScraper(p).handle_user_login()
