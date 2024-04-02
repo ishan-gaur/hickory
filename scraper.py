@@ -59,8 +59,8 @@ class FacebookScraper:
         html = self.page.content()
         soup = BeautifulSoup(html, 'html.parser')
         pretty_html = soup.prettify()
-        with open('marketplace_search_results.html', 'w', encoding='utf-8') as file:
-            file.write(pretty_html)
+        # with open('marketplace_search_results.html', 'w', encoding='utf-8') as file:
+        #     file.write(pretty_html)
             
         item_result_tag = soup.find('script', string=lambda t: not t is None and 'marketplace_search' in t)
         item_result_json = json.loads(item_result_tag.string)  # or any required manipulation to isolate the JSON
