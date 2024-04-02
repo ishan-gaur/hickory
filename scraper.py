@@ -1,4 +1,5 @@
 import os
+import code
 import time
 import json
 import pprint
@@ -33,60 +34,21 @@ class FacebookScraper:
         await self.browser.close()
         await self.playwright.__aexit__(None, None, None) 
 
-    # def __enter__(self):
-        self.playwright_context = sync_playwright().__enter__()
-        self.browser = self.playwright_context.chromium.launch(headless=False)
-        self.page = self.browser.new_page()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.browser.close()
-        self.playwright_context.__exit__(None, None, None)
-    
-
-    async def handle_user_login(self):
+    async def login(self):
         try: 
-            print("inside user login method...")
             initial_url = "https://www.facebook.com/login/device-based/regular/login/"
-            await self.page.goto(initial_url)
-            email_input = await self.page.wait_for_selector('input[name="email"]')
-            await email_input.fill(os.getenv("USERNAME"))
-            print("Successfully went to page ")
-            await asyncio.sleep(2)
-            password_input = await self.page.wait_for_selector('input[name="pass"]')
-            await password_input.fill(os.getenv("PASSWORD"))
-            await asyncio.sleep(2)
-            login_button = await self.page.wait_for_selector('button[name="login"]')
-            await login_button.click()
+            email_input = await self.page.wait_for_selector('input[name="email"]').fill(os.getenv("USERNAME"))
+            password_input = await self.page.wait_for_selector('input[name="pass"]').fill(os.getenv("PASSWORD"))
+            await ayncio.sleep(2)
+            login_button = await self.page.wait_for_selector('button[name="login"]').click()
 
             # TODO: Handle MFA Forwarding for the user
-            await asyncio.sleep(20)
+            # time.sleep(20)
 
         except TimeoutError:
             print("One of the email, password, or login-button elements did not appear within 30 seconds")
             if input("Try again?").lower() in ["y", "yes"]:
-                await self.handle_user_login()
-    
-    # kdef handle_user_login(self):
-    # k    try: 
-    # k        print("inside user login method...")
-    # k        initial_url = "https://www.facebook.com/login/device-based/regular/login/"
-    # k        self.page.goto(initial_url)
-    # k        email_input = self.page.wait_for_selector('input[name="email"]').fill(os.getenv("USERNAME"))
-    # k        print("Successfully went to page ")
-    # k        time.sleep(2)
-    # k        password_input = self.page.wait_for_selector('input[name="pass"]').fill(os.getenv("PASSWORD"))
-    # k        time.sleep(2)
-    # k        login_button = self.page.wait_for_selector('button[name="login"]').click()
-
-    # k        # TODO: Handle MFA Forwarding for the user
-    # k        time.sleep(20)
-
-    # k    except TimeoutError:
-    # k        print("One of the email, password, or login-button elements did not appear within 30 seconds")
-    # k        if input("Try again?").lower() in ["y", "yes"]:
-    # k            self.handle_user_login()
-
+                await self.login()
     
     def search_fb_marketplace(self, city: str, query: str, max_price: int = None):
         city = city.lower().replace(' ', '')
@@ -100,44 +62,9 @@ class FacebookScraper:
 
         self.page.goto(marketplace_url)
         html = self.page.content()
-        return html
-
-        # with sync_playwright() as p:
-        #     # Initialize the session, go to the login page, and wait for it to load
-        #     browser = p.chromium.launch(headless=False)
-        #     page = browser.new_page()
-        #     page.goto(initial_url)
-        #     time.sleep(2)
-
-        #     # try logging in
-        #     try:
-        #         email_input = page.wait_for_selector('input[name="email"]').fill(os.getenv("USERNAME"))
-        #         time.sleep(2)
-        #         password_input = page.wait_for_selector('input[name="pass"]').fill(os.getenv("PASSWORD"))
-        #         time.sleep(2)
-        #         login_button = page.wait_for_selector('button[name="login"]').click()
-
-        #         # TODO: Handle call to grab user MFA credential
-        #         time.sleep(20)
-        #         if page.get_by_text("The email or mobile number you entered isn't connected to an account.").is_visible():
-        #             raise ValueError("Email or password is incorrect!")
-        #     except TimeoutError:
-        #         print("One of the email, password, or login-button elements did not appear within 30 seconds")
-        #         if input("Try again?").lower() in ["y", "yes"]:
-        #             search_fb_marketplace(city, query, max_price)
-
-        #     time.sleep(2)
-        #     page.goto(marketplace_url)
-
-        #     html = page.content()
-        #     input()
-        # return html
-    
-    def extract_listings(self, html: str):
         soup = BeautifulSoup(html, 'html.parser')
         pretty_html = soup.prettify()
-        with open('marketplace_search_results.html', 'w', encoding='utf-8') as file:
-            file.write(pretty_html)
+            
         item_result_tag = soup.find('script', string=lambda t: not t is None and 'marketplace_search' in t)
         item_result_json = json.loads(item_result_tag.string)  # or any required manipulation to isolate the JSON
         MARKETPLACE_LISTINGS_QUERY = "$..marketplace_search.*"
@@ -195,17 +122,16 @@ class FacebookScraper:
         return {"listing_data": listing_data}
 
 
-# kif __name__ == "__main__":
-# k
-# k    
-# k    # kif Path('marketplace_search_results.html').exists():
-# k    # k    with open('marketplace_search_results.html', 'r', encoding='utf-8') as file:
-# k    # k        html = file.read()
-# k    # kelse:
-# k    # k    html = search_fb_marketplace(city="san francisco", query="tv stand")
-# k    # k# html = search_fb_marketplace(city="houston", query="couch")
-# k    # klistings = extract_listings(html)
-# k
-# k    # klistings = extract_listings(html)
-# k    # kpp = pprint.PrettyPrinter(indent=4)
-# k    # kpp.pprint(listings)
+if __name__ == "__main__":
+    pp = pprint.PrettyPrinter(indent=4)
+    scraper = FacebookScraper()
+    scraper.login()
+    output = None
+    interpreter = code.InteractiveInterpreter(locals={
+        'scraper': scraper,
+        'pp': pp
+    })
+    cmd = input("> ")
+    while cmd != "exit()":
+        interpreter.runsource(f"pp.pprint(scraper.{cmd})")
+        cmd = input("> ")
