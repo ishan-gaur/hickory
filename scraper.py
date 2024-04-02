@@ -21,7 +21,7 @@ class FacebookScraper:
         self.page = self.browser.new_page()
     
 
-    def handle_user_login(self):
+    def login(self):
         initial_url = "https://www.facebook.com/login/device-based/regular/login/"
         self.page.goto(initial_url)
         time.sleep(2)
@@ -56,13 +56,11 @@ class FacebookScraper:
 
         self.page.goto(marketplace_url)
         html = self.page.content()
-        return html
-    
-    def extract_listings(self, html: str):
         soup = BeautifulSoup(html, 'html.parser')
         pretty_html = soup.prettify()
         with open('marketplace_search_results.html', 'w', encoding='utf-8') as file:
             file.write(pretty_html)
+            
         item_result_tag = soup.find('script', string=lambda t: not t is None and 'marketplace_search' in t)
         item_result_json = json.loads(item_result_tag.string)  # or any required manipulation to isolate the JSON
         MARKETPLACE_LISTINGS_QUERY = "$..marketplace_search.*"
@@ -134,17 +132,17 @@ if __name__ == "__main__":
     # pp = pprint.PrettyPrinter(indent=4)
     # pp.pprint(listings)
 
-    # import inspect
-    # with sync_playwright() as p:
-    #     scraper = FacebookScraper(p)
-    #     cmd = input(">>")
-    #     while cmd != "exit()":
-    #         cmd = input(">>")
-    #         method_name = cmd[:cmd.find('(')]
-    #         prov_args = 
-    #         try:
-    #             method = getattr(scraper, method_name)
-    #             method()
-            
+    import code
+    pp = pprint.PrettyPrinter(indent=4)
     with sync_playwright() as p:
-        FacebookScraper(p).handle_user_login()
+        scraper = FacebookScraper(p)
+        scraper.login()
+        output = None
+        interpreter = code.InteractiveInterpreter(locals={
+            'scraper': scraper,
+            'pp': pp
+        })
+        cmd = input("> ")
+        while cmd != "exit()":
+            interpreter.runsource(f"pp.pprint(scraper.{cmd})")
+            cmd = input("> ")
