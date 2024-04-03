@@ -3,6 +3,7 @@ import code
 import time
 import json
 import pprint
+import logging
 from pathlib import Path
 from playwright.sync_api import sync_playwright # testing framework for interaction with a web-browser
 from bs4 import BeautifulSoup # for html parsing
@@ -25,6 +26,9 @@ class FacebookScraper:
     MARKETPLACE_URL_PREFIX = "https://www.facebook.com/marketplace"
     SEARCH_RESULT_JSON_ENTITY = 'marketplace_search'
     MARKETPLACE_LISTINGS_QUERY = "$..marketplace_search.*"
+
+    LISTING_ID_QUERY = "base_marketplace_listing_title"
+    PRODUCT_DETAILS_QUERY = "$..marketplace_product_details_page.*"
     
     def __init__(self, playwright_context):
         self.playwright_context = playwright_context
@@ -90,6 +94,42 @@ class FacebookScraper:
             listings.append(extracted)
 
         return {"listings": listings}
+    
+    def get_listing(self, listing_id: int):
+        # TODO: Experiment with multiple listing ids to verify data presence
+
+        url = f"https://www.facebook.com/marketplace/item/{listing_id}"
+        self.page.goto(url)
+        html = self.page.content()
+
+        soup = BeautifulSoup(html, 'html.parser')
+
+        item_result_tag = soup.find('script', string=lambda t: not t is None and self.LISTING_ID_QUERY in t)
+        item_result_json = json.loads(item_result_tag.string)  # or any required manipulation to isolate the JSON
+
+        jsonpath_expr = parse(self.PRODUCT_DETAILS_QUERY)
+        match_dict = {str(match.full_path).split(".")[-1]: match.value for match in jsonpath_expr.find(item_result_json)}
+
+        if len(match_dict) == 0:
+            raise Exception(f"The listing details were not found for the listing id: {listing_id}")
+
+        detail = {
+            "listing_title": match_dict.get("marketplace_listing_renderable_target", {}).get("base_marketplace_listing_title", 'N/A'),
+            "description": match_dict.get("target", {}).get("redacted_description", 'N/A'),
+            "location": match_dict.get("target", {}).get("location_text", {}).get("text", 'N/A'),
+            "creation_time": match_dict.get("target", {}).get("creation_time", 'N/A'),
+            "delivery_types": match_dict.get("target", {}).get("delivery_types", 'N/A'),
+            "current_listing_price": match_dict.get("target", {}).get("listing_price", {}).get("formatted_amount_zeros_stripped", 'N/A'),
+            "listing_details": match_dict.get("target", {}).get("attribute_data", 'N/A'),
+            "seller_name": match_dict.get("target", {}).get("marketplace_listing_seller", {}).get("name", 'N/A'),
+            "seller_rating_average": match_dict.get("target", {}).get("marketplace_listing_seller", {}).get("marketplace_ratings_stats_by_role", {}).get("seller_stats", {}).get("five_star_ratings_average", 'N/A'),
+            "seller_rating_count": match_dict.get("target", {}).get("marketplace_listing_seller", {}).get("marketplace_ratings_stats_by_role", {}).get("seller_stats", {}).get("five_star_total_rating_count_by_role", 'N/A'),
+            "primary_listing_photo_url": match_dict.get("target", {}).get("primary_listing_photo", {}).get("listing_image", {}).get("uri", 'N/A'),
+            "location_coordinates": match_dict.get("target", {}).get("item_location", 'N/A')
+        }
+
+        return detail
+
 
 if __name__ == "__main__":
     pp = pprint.PrettyPrinter(indent=4)
