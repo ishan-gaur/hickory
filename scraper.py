@@ -37,10 +37,14 @@ class FacebookScraper:
     async def login(self):
         try: 
             initial_url = "https://www.facebook.com/login/device-based/regular/login/"
-            email_input = await self.page.wait_for_selector('input[name="email"]').fill(os.getenv("USERNAME"))
-            password_input = await self.page.wait_for_selector('input[name="pass"]').fill(os.getenv("PASSWORD"))
-            await ayncio.sleep(2)
-            login_button = await self.page.wait_for_selector('button[name="login"]').click()
+            await self.page.goto(initial_url)
+            email_input = await self.page.wait_for_selector('input[name="email"]')
+            await email_input.fill(os.getenv("USERNAME"))
+            password_input = await self.page.wait_for_selector('input[name="pass"]')
+            await password_input.fill(os.getenv("PASSWORD"))
+            await asyncio.sleep(2)
+            login_button = await self.page.wait_for_selector('button[name="login"]')
+            await login_button.click()
 
             # TODO: Handle MFA Forwarding for the user
             # time.sleep(20)
@@ -129,7 +133,8 @@ async def main():
     pp = pprint.PrettyPrinter(indent=4)
     interpreter = code.InteractiveInterpreter(locals={
         'scraper': scraper,
-        'pp': pp
+        'pp': pp,
+        "asyncio": asyncio
     })
     cmd = input("> ")
     while cmd != "exit()":
