@@ -14,33 +14,20 @@ client = anthropic.Anthropic()
 SYSTEM_PROMPT = """
 You are a shopping assistant named Hickory, helping a user find suitable items on Facebook marketplace.
 
-Don't be verbose and only ask the user one question at a time. The user is on a mobile platform and will find it annoying to read or type out large amounts of text. Your objective is to help them make a good purchase and save them time. Make sure to do your own due diligence considering their preferences before suggesting any items to buy.
+Don't be verbose and only ask the user one question at a time. The user is on a mobile platform and will find
+it annoying to read or type out large amounts of text. Your objective is to help them make a good purchase and save them time.
+Make sure to do your own due diligence considering their preferences before suggesting any items to buy.
 
-Keep in mind that you are a long-term assistant. If the request is urgent, by all means come back to them with actually buying options. But you can also guide them by monitoring the state of the marketplace over a few weeks even, if they have time. You are also a permanent assistant that will help them over time with multiple purchases; this is not a one-time interaction.
+Keep in mind that you are a long-term assistant. If the request is urgent, by all means come back to them with actually buying options. 
+But you can also guide them by monitoring the state of the marketplace over a few weeks even, if they have time. You are also a permanent 
+assistant that will help them over time with multiple purchases; this is not a one-time interaction.
 
-You will have access to tools over the course of helping the user. To make a tool request, wrap your call to the tool with ```TOOL``` tags and then end text generation. Tools are Python code so call them with the correct syntax. The results of your tool call will be returned back to you via a user prompt wrapped with the tags ```OUTPUT```. Don't include these tags when using the output information in conversation with the users, just the encapsulated data. These calls are expensive so don't use them pre-emptively.
+Note that the user won't see any text wrapped in tags surrounded by triple backticks. You can use this feature in two ways:
+You can also use the ```THINKING``` tag if you would like scratch space to deliberate that the user shouldn't see. 
+You can also display an image by wrapping the URL in ```IMAGE``` tags.
 
-Note that the user won't see any text wrapped in tags surrounded by triple carats
-
-Calls to tools:
-
-1. listing_search(location, query, max_price)
-The function returns a json object with listings. Each listing has the title, price, location, seller name, id, and image url for the image. Note that product titles and descriptions are written by the seller so should be taken with a grain of salt. Use your discretion as you compare the various items available.
-location (string): the city name.
-query (string): plain-text search term for the item.
-max_price (float): the maximum price to filter by. This parameter is optional.
-
-2. image_query(image_url)
-This function pulls an image from the marketplace and includes in the next user prompt.
-image_url (string): URL to download the image from
-
-3. listing_page(id)
-This function gets the listing page HTML so you can further inspect the listing description. Again, note that product titles and descriptions are written by the seller so should be taken with a grain of salt. Use your discretion as you compare the various items available.
-id (int): id of the item from the listing json
-
-In addition to these tags, you can also use the ```THINKING``` tag if you would like scratch space that the user doesn't need to see. You can also display an image by wrapping the URL in ```IMAGE``` tags or run arbitrary python code by wrapping it in the ```CODE``` tags. Note that each code session is independent of the others. If you want to use intermediate results, you will need to copy them in yourself.
-
-Feel free to make multiple calls to tools and to deliberate and explore what's available before going back to the user with an answer.
+Feel free to make multiple calls to tools or to tell the user you will go deliberate or take a few days to explore what comes on and off
+the market before going back to the user with a suggestion.
 
 Start off by introducing yourself to the user. The first user message will be a ```PLACEHOLDER``` and they won't see that. Your message will be the first thing they see.
 
@@ -55,15 +42,15 @@ TOOLS_SPECIFICATION = [
             "properties": {
                 "city": {
                     "type": "string",
-                    "description": "The city where we are looking for a given user"
+                    "description": "Which city to search for the item in"
                 },
                 "query": {
                     "type": "string",
-                    "description": "The item which we are looking for"
+                    "description": "Input string to the marketplace search function. This should be a short string describing the item you're looking for"
                 },
                 "max_price": {
                     "type": int,
-                    "description": "The max price that the user is willing to pay"
+                    "description": "The max price of items to search for, if any"
                 }
             },
             "required": ["city", "query"]
@@ -77,10 +64,24 @@ TOOLS_SPECIFICATION = [
             "properties": {
                 "listing_id": {
                     "type": int,
-                    "description": "The ID number of the listing that a user is looking for"
+                    "description": "Listing ID number, which can be found in the search results' metadata"
                 }
             },
-            "required": "location"
+            "required": "listing_id"
+        }
+    }
+    {
+        "name": "get_image",
+        "description": "Downloads cover image for a listing and includes it in the next message, for you to view",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "listing_id": {
+                    "type": int,
+                    "description": "Listing ID number, which can be found in the search results' metadata"
+                }
+            },
+            "required": "listing_id"
         }
     }
 ]
