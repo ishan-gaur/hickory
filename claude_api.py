@@ -65,11 +65,35 @@ TOOLS_SPECIFICATION = [
                     "description": "Input string to the marketplace search function. This should be a short string describing the item you're looking for"
                 },
                 "max_price": {
-                    "type": int,
+                    "type": "int",
                     "description": "The max price of items to search for, if any"
                 }
             },
             "required": ["city", "query"]
+        }
+    }
+]
+TOOLS_SPECIFICATION = [
+    {
+        "name": "search_marketplace",
+        "description": "Searches Facebook Marketplace for a given item in a given location",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "city": {
+                    "type": "string",
+                    "description": "Which city to search for the item in, e.g. 'San Francisco'",
+                },
+                "query": {
+                    "type": "string",
+                    "description": "Input string to the marketplace search function. This should be a short string describing the item you're looking for"
+                },
+                "max_price": {
+                    "type": "integer",
+                    "description": "The max price of items to search for, if any"
+                }
+            },
+            "required": ["city"]
         }
     },
     {
@@ -79,27 +103,27 @@ TOOLS_SPECIFICATION = [
             "type": "object",
             "properties": {
                 "listing_id": {
-                    "type": int,
+                    "type": "integer",
                     "description": "Listing ID number, which can be found in the search results' metadata"
                 }
             },
-            "required": "listing_id"
-        }
-    },
-    {
-        "name": "get_image",
-        "description": "Downloads cover image for a listing and includes it in the next message, for you to view",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "listing_id": {
-                    "type": int,
-                    "description": "Listing ID number, which can be found in the search results' metadata"
-                }
-            },
-            "required": "listing_id"
+            "required": ["listing_id"]
         }
     }
+    # {
+    #     "name": "get_image",
+    #     "description": "Downloads cover image for a listing and includes it in the next message, for you to view",
+    #     "input_schema": {
+    #         "type": "object",
+    #         "properties": {
+    #             "listing_id": {
+    #                 "type": "int",
+    #                 "description": "Listing ID number, which can be found in the search results' metadata"
+    #             }
+    #         },
+    #         "required": "listing_id"
+    #     }
+    # }
 ]
 
 
@@ -129,6 +153,7 @@ class ClaudeClient:
             system=SYSTEM_PROMPT,
             messages=self.messages
         )
+        self.messages.append({"role": "assistant", "content": message.content})
 
         return message.content
 
@@ -211,7 +236,7 @@ if __name__ == "__main__":
     pp = pprint.PrettyPrinter(indent=4)
     with sync_playwright() as p:
         claude_client = ClaudeClient(p)
-        pp.pprint(initial_message = claude_client.get_claude_message())
+        pp.pprint(claude_client.get_claude_message())
         input()
         pp.pprint(claude_client.messages)
     # claude_client.format_response(initial_message)
